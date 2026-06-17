@@ -14,7 +14,7 @@
 
 ## 脚本列表
 
-### 1. 舒尔特方格速通 — [`schulte_auto.py`](scripts/schulte_auto.py)
+### 1. 舒尔特方格速通 — [`schulte_auto.py`](schulte_auto.py)
 
 **目标游戏**: [舒尔特方格](https://toolonline.net/shult-grid)
 
@@ -52,7 +52,7 @@ python scripts/schulte_auto.py
 
 ---
 
-### 2. 数字顺序记忆速通 — [`number_sequence_memory_auto.py`](scripts/number_sequence_memory_auto.py)
+### 2. 数字顺序记忆速通 — [`number_sequence_memory_auto.py`](number_sequence_memory_auto.py)
 
 **目标游戏**: [数字顺序记忆](https://toolonline.net/number-sequence-memory)
 
