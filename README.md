@@ -14,7 +14,7 @@
 
 ## 脚本列表
 
-### 1. 舒尔特方格速通 — [`schulte_auto.py`](schulte_auto.py)
+### 1. 舒尔特方格速通 — [`scripts/schulte_auto.py`](scripts/schulte_auto.py)
 
 **目标游戏**: [舒尔特方格](https://toolonline.net/shult-grid)
 
@@ -27,6 +27,21 @@
 - 自动重试：完成一轮后自动开始下一轮
 - 重新开始按钮：无需重启脚本，一键再来
 - GUI 控制面板：棋盘阶级、点击间隔、同步连点数均可界面设置
+- 期望值模式：设定目标时间，EMA+增量式比例调节自动逼近期望值
+- 死区锁定：到达期望值±死区范围内时锁定延迟不变，消除末段震荡
+- 实时图表：折线图展示每轮服务器时间 vs 期望值，右侧纵轴显示死区范围
+- 达到期望值自动停止
+
+**版本更新**:
+
+#### shulte_auto.py v2.0 — EMA 平滑 + 死区锁定
+
+- **EMA+增量式比例调节** 替代滑动窗口均值，抗网络波动（α=0.3，增益 K=0.5）
+- **纯点击开销修正**: server_time - delay×注入次数（之前只减一个 delay）
+- **死区锁定**: 服务器时间落在 期望值±死区 内时锁定延迟不变，死区默认 ±0.005s
+- **图表优化**: 仅最新数据点画圆点，其余折线连接；死区范围在右侧纵轴绿色标注
+- **历史表头固定**: 不随内容滚动
+- **达到期望值自动停止**: 服务器时间精确等于目标（±0.0001s）时 break
 
 **使用方法**:
 
@@ -52,7 +67,7 @@ python scripts/schulte_auto.py
 
 ---
 
-### 2. 数字顺序记忆速通 — [`number_sequence_memory_auto.py`](number_sequence_memory_auto.py)
+### 2. 数字顺序记忆速通 — [`scripts/number_sequence_memory_auto.py`](scripts/number_sequence_memory_auto.py)
 
 **目标游戏**: [数字顺序记忆](https://toolonline.net/number-sequence-memory)
 
@@ -104,18 +119,13 @@ python scripts/number_sequence_memory_auto.py
 pip install selenium webdriver-manager
 ```
 
-## 原理
-
-| 传统 OCR 方式 | 本项目方式 |
-|---------------|-----------|
-| 截图 → 图像识别 → 坐标换算 → 点击 | DOM 选择器定位 → element.click() |
-| 延迟高、识别率受截图影响 | 延迟低、100% 准确 |
-| 需要额外 OCR 依赖 | 无额外依赖 |
+## 特性
 
 - 基于 Selenium WebDriver 直接操作浏览器 DOM 元素
 - `WebElement.click()` 直接触发点击事件，无需坐标换算
 - JS 点击（`arguments[0].click()`）作为 fallback，应对元素被遮挡等情况
 - 多线程架构：识别线程预规划路径，点击线程同步执行
+- MEA 平滑算法，自动补偿网络与本地计算延迟
 
 ## License
 
