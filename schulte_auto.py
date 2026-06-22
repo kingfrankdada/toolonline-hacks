@@ -375,7 +375,7 @@ class SchulteApp:
                       anchor="w", fill=COLOR_EXPECT, font=("", 9, "bold"))
 
         # ---- 死区标注（右侧纵轴绿色数字，标注在期望值高度） ----
-        c.create_text(w - pad_r + 4, y_exp, text=f"[↕]{deadband:.3f}", anchor="w",
+        c.create_text(w - pad_r + 4, y_exp, text=f"±{deadband:.3f}", anchor="w",
                       fill=COLOR_DEADBAND, font=("", 8))
 
         # ---- 数据折线 ----
@@ -522,7 +522,7 @@ class SchulteApp:
                 total_injected = delay * delay_count
                 click_delay = server_time - total_injected  # 纯点击开销（含网络波动）
                 self._overheads.append(click_delay)
-                adjust = self._auto_adjust_delay(size)
+                adjust = self._auto_adjust_delay(size, server_time=server_time)
                 rn = self._round_num
                 self.root.after(0, lambda rn=rn, st=server_time, cd=click_delay, d=delay, g=group, a=adjust:
                     self._add_history(rn, st, cd, d, g, a))
@@ -558,7 +558,7 @@ class SchulteApp:
         self.root.after(0, lambda: self.restart_btn.config(state="normal"))
         self.log("期望值模式已停止")
 
-    def _auto_adjust_delay(self, size, total_delay_injected=None):
+    def _auto_adjust_delay(self, size, server_time=None):
         """EMA 平滑 + 增量式比例调节，逼近期望时间
 
         算法:
@@ -567,6 +567,7 @@ class SchulteApp:
         3. 理想延迟 = (期望时间 - EMA开销) / 注入延迟次数
         4. 增量修正: 新延迟 = 当前延迟 + K × (理想延迟 - 当前延迟)
            K=0.5 表示每轮只走差距的一半，防止过冲震荡
+        5. 死区: 实际服务器时间在 期望值±死区 内时，锁定延迟不变
 
         返回调整文本，如 "0.150(▲+0.050)" 或 "0.080(▼-0.020)"
         """
@@ -602,21 +603,15 @@ class SchulteApp:
         ideal_delay = (target_time - self._ema_overhead) / delay_count
         ideal_delay = max(0.01, ideal_delay)  # 最低 0.01s
 
-        # --- 死区检测: 服务器时间在 target ± deadband 内则不调整 ---
+        # --- 死区检测: 实际服务器时间在 target ± deadband 内则不调整 ---
         try:
             deadband = float(self.deadband_var.get())
         except (ValueError, tk.TclError):
             deadband = 0.005
 
-        if self._ema_overhead is not None:
-            estimated_server_time = self._ema_overhead + self._auto_delay * delay_count
-            in_deadband = abs(estimated_server_time - target_time) <= deadband
-        else:
-            in_deadband = False
-
-        if in_deadband:
+        if server_time is not None and abs(server_time - target_time) <= deadband:
             # 死区内：EMA 仍然更新（跟踪噪声），但延迟锁定不变
-            adjust_text = f"{self._auto_delay:.3f}(↕{deadband:.3f})"
+            adjust_text = f"{self._auto_delay:.3f}(±{deadband:.3f})"
             self.root.after(0, lambda nd=self._auto_delay: self.delay_var.set(f"{nd:.3f}"))
             self.root.after(0, lambda: self.auto_info_var.set(
                 f"延迟={self._auto_delay:.3f}s(死区锁), 目标={target_time:.3f}s, "
@@ -957,7 +952,7 @@ class SchulteApp:
                 adjust = ""
                 if auto_adjust:
                     self._overheads.append(click_delay)
-                    adjust = self._auto_adjust_delay(size)
+                    adjust = self._auto_adjust_delay(size, server_time=server_time)
                 rn = self._round_num
                 self.root.after(0, lambda rn=rn, st=server_time, cd=click_delay, d=delay, g=group, a=adjust:
                     self._add_history(rn, st, cd, d, g, a))
